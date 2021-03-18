@@ -1,0 +1,101 @@
+import os
+import matplotlib.pyplot as plt
+import torch
+import numpy as np
+from torchvision import transforms
+
+#extract images and labels from dataset folder and put into arrays
+images = []
+label = []
+counter = 0
+for root, dirs, files in os.walk("drive/MyDrive/Project_Step1"):
+  if counter > 10:
+    break
+  counter+=1
+  for file in files:
+    filename = str(file)
+    if (filename.endswith('.png') and not filename.startswith('._')):
+      filepath = str(root) + '/' + str(file)
+      img = plt.imread(filepath)
+      img_cropped = img[0:154, 0:1200]
+      images.append(img_cropped)
+    if (filename.endswith('.semantic') and not filename.startswith('._')):
+      filepath = str(root) + '/' + str(file)
+      f = open(filepath, 'r')
+      contents = f.read()
+      elements = contents.split("\t", 50)
+      #print(elements)
+      semantic = []
+      for element in elements:
+        #print(element)
+        if element.startswith('note'):
+          element = element[5:8]
+          if element.endswith('_'):
+            element = element[:-1]
+          semantic.append(element)
+
+      label.append(semantic)
+
+
+#example image and label
+plt.imshow(images[3]) 
+print(label[3])
+
+#convert labels to integer encoding
+
+#helper functions
+
+letters_to_numbers =  {
+  'C':0,
+  'D':2,
+  'E':4,
+  'F':5,
+  'G':7,
+  'A':9,
+  'B':11
+  }
+accidentals_to_numbers = {
+    'x':2,
+    '#':1,
+    '':0,
+    'n':0,
+    'b':-1,
+    'bb':-2
+}
+def letter_to_int(noteId):
+  #Get octave
+  octaveNum = int(noteId[-1])
+  #Get letter name
+  letterName = noteId[0]
+  letterNum = letters_to_numbers[letterName]
+  #Get accidental  
+  accidentalName = noteId[1:-1]
+  accidentalNum = accidentals_to_numbers[accidentalName]
+  #Add together
+  noteNum = (octaveNum+1)*12+letterNum+accidentalNum
+  return noteNum
+
+#call functions on label set to generate integer labels
+int_label = []
+for semantic in label:
+  int_semantic = []
+  for note in semantic:
+    int_semantic.append(letter_to_int(note))
+  int_label.append(int_semantic)  
+
+#split data
+training_data = images[0:255]
+validation_data = images[256:288]
+testing_data = images[289:320]
+#split labels
+training_labels = int_label[0:255]
+validation_labels = int_label[256:288]
+testing_labels = int_label[289:320]
+
+
+#convert image into tensor- for use in the model?
+#create list of tensors
+
+image_tensors_list = [torch.from_numpy(item).float() for item in images]
+
+print(image_tensors_list[0].shape)
